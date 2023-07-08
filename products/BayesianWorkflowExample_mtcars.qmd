@@ -1,0 +1,89 @@
+---
+title: "Bayesian Workflow with mtcars"
+author: "William (Hank) Murrah"
+format: html
+---
+
+## Setup
+
+package used:
+```{r}
+#| warning: false
+#| message: false
+library(brms)
+library(MASS)
+library(tidyverse)
+library(psych)
+```
+
+
+data used:
+```{r}
+data(mtcars)
+#mtcars$am_fac <- factor(mtcars$am, labels = c("automatic", "manual"))
+mtcars$vs_fac <- factor(mtcars$vs, labels = c("v-shaped", "straight"))
+```
+
+```{r}
+describe(mtcars, fast = TRUE)
+```
+
+```{r}
+ggplot(mtcars, aes(x = hp, y = mpg, color = vs_fac)) + geom_point()
+```
+```{r}
+
+priors <- c(set_prior("normal(0, 20)", class = "Intercept"),
+            set_prior("normal(0,20)", class = "b", coef = "hp"),
+            set_prior("normal(0, 20)", class = "b", coef = "vs"),
+            set_prior("normal(0, 20)", class = "b", coef = "hp:vs"),
+            #set_prior("normal(0,1)", class = "sd"),
+            set_prior("normal(0,10)", class = "sigma"))
+```
+
+```{r}
+#| cache: true
+#| message: false
+modx <- bf(mpg ~ hp*vs)
+simdat_prior <- brm(modx, data = mtcars, prior = priors, sample_prior = "only", silent = 0)
+```
+
+```{r}
+mtcars$mpg_pp <- predict(simdat_prior, newdata = mtcars, summary = FALSE,
+                      ndraws =1)[1, ]
+```
+
+```{r}
+hist(mtcars$mpg_pp)
+```
+
+```{r}
+
+priors_wi <- c(set_prior("normal(25, 1.5)", class = "Intercept"),
+            set_prior("normal(1,1)", class = "b", coef = "hp"),
+            set_prior("normal(0, 5)", class = "b", coef = "vs"),
+            set_prior("normal(0, .05)", class = "b", coef = "hp:vs"),
+            #set_prior("normal(0,1)", class = "sd"),
+            set_prior("normal(0,4)", class = "sigma"))
+```
+
+```{r}
+#| cache: true
+#| message: false
+#| 
+simdat_prior_wi <- brm(modx, data = mtcars, prior = priors_wi,
+                       sample_prior = "only", silent = 0)
+```
+
+```{r}
+mtcars$mpg_pp <- predict(simdat_prior_wi, newdata = mtcars, summary = FALSE,
+                      ndraws =1)[1, ]
+pp_wi <- predict(simdat_prior_wi, newdata = mtcars, summary = FALSE,
+                 ndraws = 1)
+```
+
+```{r}
+hist(mtcars$mpg_pp)
+```
+
+
